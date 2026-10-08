@@ -58,6 +58,10 @@ sidebar; **Refresh** picks up versions saved from elsewhere.
 - Switch the tailoring model to a cheaper one for quick drafts, keeping the larger
   model for applications that matter most.
 
+## License
+
+The Resume Tailor app (everything under [`system/apps/resume_tailor/`](system/apps/resume_tailor/)) is released under the [MIT License](system/apps/resume_tailor/LICENSE). The rest of this repository is the Imbue Studio workspace template it was built on, which is not covered by that license.
+
 ## What this is
 
 This repository is a published **Imbue Studio template**: a clean, bootable

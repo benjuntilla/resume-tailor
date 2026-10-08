@@ -29,3 +29,7 @@ under `data/.apps/resume-tailor/runs/`.
 local bare repo, and stand in for Claude (`test_data/fake_claude.py`, via
 `RESUME_TAILOR_CLAUDE`, which also names the job) and for RenderCV
 (`test_data/fake_render.py`), so they never touch your resume, GitHub, or a model.
+
+## License
+
+This app (everything under `system/apps/resume_tailor/`) is released under the MIT License; see `LICENSE`.
