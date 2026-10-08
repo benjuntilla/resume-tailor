@@ -1,0 +1,100 @@
+# Machine-readable manifest for this template. The sibling
+# template.md holds the prose, the Requirements list, and the two
+# append-only history logs; this file is authoritative for everything
+# below. Both are generated together -- validate_template.py fails if
+# they disagree.
+format = "v2"
+
+[template]
+slug = "resume-tailor"
+title = "Resume Tailor"
+description = "Paste a job link and watch an AI agent tailor your RenderCV resume to it step by step, then keep or undo each change. One git branch per job."
+thumbnail = "template.svg"
+version = "v1"
+
+# How this template is DERIVED from the workspace it came from. An
+# update re-runs this recipe rather than diffing two repos, which is what
+# keeps an exclusion excluded even though the thing still exists upstream.
+[recipe]
+include = ["system/apps/resume_tailor", "system/supervisord.conf.d/resume-tailor.conf"]
+data_include = []
+exclude = [
+  "the publisher's own resume repo (.external_worktrees/resume) and its tailor/* branches -- personal data; the adopter clones their own",
+  "the app's run records under data/.apps/resume-tailor/ (step progress, agent transcripts, fetched postings) -- personal data",
+]
+modification_rules = []
+
+# Everything an adopter must deal with before this is really theirs.
+# One list -- but each entry's KIND says how it is handled, because the
+# two are handled at different times by different mechanisms:
+#
+#   permission / secret / llm = ACTIVATION. The adopting agent acts on
+#   these FIRST and BY ITSELF, initiating each latchkey permission
+#   request and each secret request before asking the user anything.
+#   Every one of them must have a matching requires_ line in template.md
+#   and vice versa -- the validator checks that, because an adopter once
+#   never got prompted for a permission the app needed.
+#
+#   The [[requirements.secret]] entries below were AGGREGATED from the
+#   included apps' app.toml [[secrets]] and skills' SKILL.md secrets:
+#   declarations, plus every data/.secrets/<file>.env the snapshot's
+#   mcp-servers.json and supervisord programs run under. Fix a wrong one
+#   at its declaration, not here.
+#
+#   adaptation = worked through INTERACTIVELY with the user afterwards.
+#   Prose on both sides, so it is not cross-checked.
+[requirements]
+
+[[requirements.permission]]
+scope = "github-git"
+permission = "github-git-read"
+note = "fetch the resume repo's main and tailor/* branches before each run and on Refresh"
+
+[[requirements.permission]]
+scope = "github-git"
+permission = "github-git-write"
+note = "push each job's tailor/<company>-<role> branch after a run and after every undo/restore"
+
+[requirements.llm]
+method = "keyless"
+note = "calls claude -p (Haiku completion to name the job, Opus stream-json agent run to tailor; models fixed in tailor.py). A keyed adopter needs no code change for the agent run (claude -p uses ANTHROPIC_API_KEY itself); about $1 per tailoring on the publisher's runs. Switch the naming completion to litellm per use-ai-integration only if wanted."
+
+[[requirements.adaptation]]
+summary = "the user's own resume repo is not included"
+resolution = "clone the user's RenderCV resume repo (base.yaml on main, GitHub origin, .worktrees/ gitignored, .claude/skills/tailor-resume/SKILL.md) at RESUME_TAILOR_REPO (default .external_worktrees/resume); copy resume_repo_starter/.claude/ into it if it has no tailor-resume skill"
+
+[[requirements.adaptation]]
+summary = "the tailoring instructions and step list assume a one-page new-grad engineering resume (skills, experience, projects, coursework, bold_keywords)"
+resolution = "edit the repo's SKILL.md to match the user's resume sections, and update STEPS / AGENT_STEP_KEYS in tailor.py to match"
+
+[[requirements.adaptation]]
+summary = "RenderCV is pinned to 2.8 in review.py, tailor.py, and the starter skill"
+resolution = "if the user's base.yaml targets another RenderCV version, change all three to match"
+
+# What the included code needs INSTALLED. apt takes bare names: versions
+# are a function of the apt snapshot timestamp, so replaying names at the
+# adopter's timestamp yields versions consistent with the rest of their
+# environment. The other sources are not snapshot-pinned, so for them the
+# recorded version IS the pin (name = version).
+#
+# Nothing extra: git, claude and uvx are stock; uvx fetches rendercv[full]==2.8
+# at render time and the browser loads @pierre/diffs from esm.sh.
+[environment]
+apt = []
+env_d_units = []
+
+# Templates this agent used on the way to this one, oldest first.
+# A new manifest overrides its predecessor rather than accumulating
+# beside it; the commit hash is what keeps the superseded manifest
+# retrievable in the repo where it is authoritative.
+
+[[lineage]]
+slug = "rubric-review"
+repo_url = "https://github.com/boweiliu/rubric-review"
+commit = "75f3335d1b8f494465a195ccf5e2b557391e2e5f"
+
+[[lineage]]
+slug = "inbox-digest-review"
+repo_url = "https://github.com/imbue-ai/inbox-digest-review-mind-template"
+commit = "0ed139f04fced96fb0e1a7fa01affa12957f8a0c"
+used_on = "2026-10-07"

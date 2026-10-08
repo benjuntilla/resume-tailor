@@ -1,0 +1,63 @@
+cv:
+  name: 'Alex Doe'
+  email: alex@example.com
+  sections:
+    experience:
+      - company: Initech
+        position: Software Engineer Intern
+        location: Austin, TX
+        start_date: 2026-05
+        end_date: 2026-08
+        highlights:
+          - "Cut P95 latency of hot-path queries 60% by adding a GraphQL lint rule"
+          - "Boosted velocity of 400+ engineers by improving internal AI tooling"
+      - company: Globex
+        position: Data Engineering Intern
+        start_date: 2025-05
+        end_date: 2025-08
+        highlights:
+          - Built a Spark pipeline that processed 2 TB of event logs every night
+      - company: Hooli
+        position: Software Engineer Intern
+        location: Palo Alto, CA
+        start_date: 2025-05
+        end_date: 2025-08
+        highlights:
+          - Shipped monitoring for 150+ ML deployments using Python, gRPC and Kubernetes
+          - Owned reliability end-to-end via user interviews, alert tuning and runbooks
+          # - Containerized a FastAPI back-end with Docker onto AWS Fargate
+    projects:
+      # - name: "Pathfinder (1st place, City Hackathon)"
+      #   date: Mar 2025
+      #   highlights:
+      #     - Built a voice-based AI agent with Python and React, placing 1st of 23 teams
+      - name: "Lumen: Video Enhancement"
+        highlights:
+          - Trained a CNN video enhancement model in PyTorch, cutting inference time 3x
+    education:
+      - institution: State University
+        area: Computer Science
+        degree: Bachelor of Science
+        highlights:
+          - 'Coursework: Data Structures, Operating Systems, Compilers, Automata Theory'
+    skills:
+      - label: Languages
+        details: Python, **C++**, SQL, TypeScript
+      - label: Infrastructure and Tools
+        details: Linux, Docker, Kubernetes, gRPC, Spark, GraphQL, Git
+
+design:
+  theme: engineeringresumes
+
+settings:
+  bold_keywords:
+    - Python
+    - Spark
+    - SQL
+    - C++
+    - Docker
+    - Kubernetes
+    - gRPC
+    - PyTorch
+  render_command:
+    pdf_path: NAME_IN_SNAKE_CASE_resume.pdf

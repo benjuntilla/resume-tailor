@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Resume Tailor</title>
+<style>
+  :root {
+    --ink: #1d1f21; --muted: #6b6f75; --line: #e6e3dc; --bg: #faf8f4; --panel: #ffffff;
+    --accent: #c4552f; --accent-soft: #fbe9e1; --ok: #2f7d4f; --ok-soft: #e3f2e8;
+    --del: #a33a2a; --del-soft: #fbe4e0; --warn-soft: #fff7e6; --warn-line: #f0dcae;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; color: var(--ink); background: var(--bg); font-size: 14px; }
+  .app { display: grid; grid-template-columns: 240px 1fr; height: 100vh; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  aside { border-right: 1px solid var(--line); padding: 18px 14px; overflow-y: auto; background: #f4f1ea; }
+  aside h1 { font-size: 15px; margin: 0 0 18px; display: flex; align-items: center; gap: 8px; }
+  aside h1 svg { width: 22px; height: 22px; }
+  #newBtn { width: 100%; padding: 8px; border: 1px dashed #c9c3b6; background: transparent; border-radius: 8px; cursor: pointer; color: var(--ink); font: inherit; margin-bottom: 16px; }
+  #newBtn:hover { background: #ece7dc; }
+  .side-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 4px 6px; display: flex; justify-content: space-between; }
+  .side-label button { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 0; }
+  .job-item { padding: 8px 10px; border-radius: 8px; cursor: pointer; margin-bottom: 2px; }
+  .job-item:hover { background: #ece7dc; }
+  .job-item.active { background: #fff; box-shadow: 0 0 0 1px var(--line); }
+  .job-item .co { font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .job-item .role { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .job-item .when { color: var(--muted); font-size: 11.5px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .br { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; color: #8a8478; }
+  .pill { font-size: 10.5px; padding: 1px 6px; border-radius: 99px; font-weight: 500; }
+  .pill.running, .pill.queued { background: var(--accent-soft); color: var(--accent); }
+  .pill.failed { background: var(--del-soft); color: var(--del); }
+  .pill.needs_paste { background: var(--warn-soft); color: #8a6512; }
+  .empty-list { color: var(--muted); font-size: 12.5px; padding: 6px 4px; }
+
+  main { overflow-y: auto; display: flex; flex-direction: column; }
+  .linkbar { padding: 18px 24px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  .linkbar form { display: flex; gap: 8px; max-width: 900px; }
+  input[type=url], input[type=text] { flex: 1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: var(--bg); }
+  input:focus, textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .btn { padding: 10px 16px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; padding: 7px 12px; }
+  .formerr { color: var(--del); margin-top: 8px; font-size: 13px; }
+  .linkbar .alt { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+  .linkbar .alt button { border: none; background: none; color: var(--accent); cursor: pointer; font: inherit; padding: 0; }
+  textarea { width: 100%; height: 140px; margin: 8px 0; padding: 8px; border: 1px solid var(--line); border-radius: 6px; font: inherit; }
+
+  .banner { margin: 14px 24px 0; padding: 12px 14px; border-radius: 8px; }
+  .banner.warn { background: var(--warn-soft); border: 1px solid var(--warn-line); }
+  .banner.err { background: var(--del-soft); border: 1px solid #f0c4bb; color: var(--del); }
+  .banner.err .btn { margin-top: 8px; }
+
+  .jobhead { padding: 18px 24px 4px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .jobhead h2 { margin: 0; font-size: 20px; }
+  .jobhead .sub { color: var(--muted); }
+  .jobhead a { font-size: 13px; }
+  .wants { padding: 6px 24px 14px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font-size: 12px; padding: 3px 9px; border-radius: 99px; background: #efebe3; }
+  .chip.hit { background: var(--ok-soft); color: var(--ok); }
+
+  .work { display: grid; grid-template-columns: minmax(340px, 1fr) minmax(420px, 1.15fr); flex: 1; border-top: 1px solid var(--line); }
+  .steps { padding: 18px 24px; border-right: 1px solid var(--line); }
+  .steps h3 { margin: 0 0 12px; font-size: 13px; color: var(--muted); font-weight: 500; }
+  .step { display: grid; grid-template-columns: 26px 1fr; gap: 10px; position: relative; padding-bottom: 14px; }
+  .step:not(:last-child)::before { content: ""; position: absolute; left: 12px; top: 26px; bottom: 0; width: 2px; background: var(--line); }
+  .step.done:not(:last-child)::before { background: #bcdcc7; }
+  .dot { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); background: #fff; display: grid; place-items: center; font-size: 12px; color: var(--muted); z-index: 1; }
+  .step.done .dot { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .step.failed .dot, .step.stopped .dot { background: var(--del); border-color: var(--del); color: #fff; }
+  .step.needs_paste .dot { background: #e0b04a; border-color: #e0b04a; color: #fff; }
+  .step.running .dot { border-color: var(--accent); border-top-color: transparent; animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .step .title { font-weight: 600; padding-top: 3px; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
+  .step.pending .title { color: var(--muted); font-weight: 500; cursor: default; }
+  .step .title .count { font-weight: 400; color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .step .detail { color: var(--muted); font-size: 13px; margin-top: 3px; }
+  .changes { margin-top: 8px; display: none; }
+  .step.open .changes { display: block; }
+  .change { font-size: 12.5px; line-height: 1.45; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; background: #fff; }
+  .change .line { display: block; }
+  .change .why { color: var(--muted); font-size: 12px; margin-top: 4px; font-style: italic; }
+  del { background: var(--del-soft); color: var(--del); text-decoration: line-through; padding: 0 2px; border-radius: 3px; }
+  ins { background: var(--ok-soft); color: var(--ok); text-decoration: none; padding: 0 2px; border-radius: 3px; }
+  .legacy { color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .md { line-height: 1.55; }
+  .md h1 { font-size: 17px; } .md h2 { font-size: 15px; } .md h3 { font-size: 14px; }
+
+  .preview { padding: 14px 24px 24px; background: #f1eee7; min-width: 0; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+  .tab { padding: 6px 12px; border-radius: 7px; cursor: pointer; color: var(--muted); border: none; background: none; font: inherit; }
+  .tab.active { background: #fff; color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+  .tabs .spacer { flex: 1; }
+  .page { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 6px 20px rgba(0,0,0,.06); border-radius: 2px; position: relative; }
+  .page img { width: 100%; display: block; }
+  .page .badge { position: absolute; top: 10px; right: 10px; background: var(--ok); color: #fff; font-size: 11.5px; padding: 3px 8px; border-radius: 99px; }
+  .page .badge.bad { background: var(--del); }
+  .placeholder { height: 520px; display: grid; place-items: center; color: var(--muted); text-align: center; padding: 20px; }
+  .shimmer { background: linear-gradient(90deg, #fff 0%, #f4f1ea 50%, #fff 100%); background-size: 200% 100%; animation: sh 1.4s infinite; }
+  @keyframes sh { to { background-position: -200% 0; } }
+  .doc { background: #fff; border-radius: 6px; padding: 18px 22px; box-shadow: 0 0 0 1px var(--line); overflow-x: auto; }
+  .diffwrap { padding: 0; overflow: hidden; }
+  .diffwrap .legacy { padding: 18px 22px; }
+  .diff { padding: 18px 22px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+  .diff .a { background: var(--ok-soft); color: var(--ok); display: block; }
+  .diff .d { background: var(--del-soft); color: var(--del); display: block; }
+  .diff .h { color: var(--muted); display: block; margin-top: 6px; }
+  .tabcount { font-size: 11px; background: #efebe3; border-radius: 99px; padding: 0 6px; margin-left: 2px; }
+  .linkbtn { border: none; background: none; color: var(--accent); cursor: pointer; font: inherit; padding: 0; text-decoration: underline; }
+  .revived-banner { margin: 6px 24px 4px; }
+  .review .rsum { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+  .ccard { background: #fff; border-radius: 8px; box-shadow: 0 0 0 1px var(--line); margin-bottom: 10px; overflow: hidden; }
+  .ccard.revived { box-shadow: 0 0 0 2px #e0b04a; }
+  .chead { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .clabel { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kind { font-size: 11px; padding: 2px 7px; border-radius: 99px; background: #efebe3; white-space: nowrap; }
+  .kind.revived { background: #fbeccb; color: #7a5410; font-weight: 600; }
+  .kind.hidden, .kind.removed { background: var(--del-soft); color: var(--del); }
+  .kind.added { background: var(--ok-soft); color: var(--ok); }
+  .btn.small { padding: 4px 10px; font-size: 12.5px; }
+  .cdiff { font-size: 12px; }
+  .notes, .whole { margin: 12px 0; }
+  .notes summary, .whole summary { cursor: pointer; color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+  .undone { margin-top: 16px; }
+  .undone h4 { margin: 0 0 6px; font-size: 13px; color: var(--muted); font-weight: 500; }
+  .urow { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 8px; box-shadow: 0 0 0 1px var(--line); padding: 8px 10px; margin-bottom: 6px; font-size: 13px; color: var(--muted); }
+  .urow span { flex: 1; text-decoration: line-through; }
+  .hidden { display: none !important; }
+
+  .welcome { padding: 60px 24px; max-width: 560px; color: var(--muted); line-height: 1.6; }
+  .welcome h2 { color: var(--ink); font-size: 20px; margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <h1>
+      <svg viewBox="0 0 216 216"><rect width="216" height="216" rx="69.12" fill="#D26645"/><path fill="#FCEFD4" d="M88.6 41.2C88.1 38.4 90.2 36.3 93.1 36.6C102.4 37.4 113.9 37.1 123.8 36.2C126.9 35.9 128.6 38.2 127.9 41.1L122.4 63.3C121.8 65.7 120.1 67.1 117.6 67.2C111.3 67.6 105.2 67.4 99.3 66.9C96.6 66.7 95.1 65.3 94.5 62.8ZM97.8 74.6C98.3 72.2 100.1 71 102.6 71.2C106.9 71.5 111.1 71.4 115.2 71.1C117.9 70.9 119.6 72.3 120.2 74.8L139.1 151.6C139.8 154.5 139.1 156.6 136.9 158.7L112.4 178.4C110.1 180.2 107.6 180.1 105.4 178.1L80.6 156.9C78.6 155.1 77.9 152.8 78.6 150.1Z"/></svg>
+      Resume Tailor
+    </h1>
+    <button id="newBtn">+ New job</button>
+    <div class="side-label"><span>Past jobs</span><button id="refreshBtn" title="Check GitHub for versions saved elsewhere">Refresh</button></div>
+    <div id="jobList"><div class="empty-list">Loading...</div></div>
+  </aside>
+
+  <main>
+    <div class="linkbar">
+      <form id="linkForm">
+        <input id="link" type="url" placeholder="Paste a job posting link" autocomplete="off">
+        <button class="btn" id="go" type="submit">Tailor resume</button>
+      </form>
+      <div class="alt">No link? <button id="pasteInstead" type="button">Paste the description instead</button></div>
+      <div id="pasteNew" class="hidden">
+        <textarea id="pasteNewText" placeholder="Paste the full job description"></textarea>
+        <button class="btn" id="pasteNewGo" type="button">Tailor resume</button>
+      </div>
+      <div class="formerr hidden" id="formErr"></div>
+    </div>
+    <div id="view"></div>
+  </main>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let selected = null, jobs = [], github = null, pollTimer = null, currentTab = "resume", openSteps = new Set(), lastJob = null;
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.error || `Request failed (${r.status})`);
+  return body;
+}
+
+// ---- sidebar ----
+async function loadJobs() {
+  try {
+    const data = await api("/api/jobs");
+    jobs = data.items; github = data.github;
+    renderJobs();
+  } catch (e) { $("#jobList").innerHTML = `<div class="empty-list">Couldn't load past jobs: ${esc(e.message)}</div>`; }
+}
+const STATUS_LABEL = { queued: "Waiting", running: "Working", failed: "Stopped", needs_paste: "Needs text" };
+function fmtDate(d) {
+  if (!d) return "";
+  const today = new Date().toISOString().slice(0, 10);
+  if (d === today) return "Today";
+  return new Date(d + "T12:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+function renderJobs() {
+  const el = $("#jobList");
+  if (!jobs.length) { el.innerHTML = `<div class="empty-list">Nothing yet. Paste a job link above to tailor your first one.</div>`; return; }
+  el.innerHTML = jobs.map((j) => `
+    <div class="job-item ${j.key === selected ? "active" : ""}" data-key="${esc(j.key)}" id="job-${esc(j.key)}">
+      <div class="co">${esc(j.company)} ${STATUS_LABEL[j.status] ? `<span class="pill ${j.status}">${STATUS_LABEL[j.status]}</span>` : ""}</div>
+      <div class="role">${esc(j.role)}</div>
+      <div class="when">${fmtDate(j.date)} ${j.branch ? `<span class="br">${esc(j.branch)}</span>` : ""}</div>
+    </div>`).join("");
+  el.querySelectorAll(".job-item").forEach((n) => n.onclick = () => select(n.dataset.key));
+}
+
+// ---- job view ----
+async function select(key, keepTab) {
+  if (key !== selected) { openSteps = new Set(); if (!keepTab) currentTab = "resume"; }
+  selected = key;
+  renderJobs();
+  history.replaceState(null, "", key ? `?job=${encodeURIComponent(key)}` : location.pathname);
+  clearTimeout(pollTimer);
+  if (!key) { renderWelcome(); return; }
+  try {
+    const job = await api(`/api/job/${encodeURIComponent(key)}`);
+    if (selected !== key) return;
+    renderJob(job);
+    const status = job.run && job.run.status;
+    if (status === "running" || status === "queued") pollTimer = setTimeout(() => select(key, true), 1500);
+    if (lastJob && lastJob.key === key && lastJob.run && lastJob.run.status !== status) loadJobs();
+    lastJob = job;
+  } catch (e) {
+    $("#view").innerHTML = `<div class="banner err">Couldn't open this job: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderWelcome() {
+  $("#view").innerHTML = `<div class="welcome"><h2>Tailor your resume to a job</h2>
+    Paste a job posting link above. The app reads the posting, makes a separate copy of your resume for that job,
+    and follows your tailoring rules step by step while you watch. Your main resume is never changed.</div>`;
+}
+
+function changeHtml(c) {
+  const before = c.before ? `<span class="line"><del>${esc(c.before)}</del></span>` : "";
+  const after = c.after ? `<span class="line"><ins>${esc(c.after)}</ins></span>` : "";
+  return `<div class="change">${before}${after}${c.why ? `<div class="why">${esc(c.why)}</div>` : ""}</div>`;
+}
+
+const CHECK = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6.3l2.3 2.3 4.7-5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+function stepsHtml(run) {
+  return run.steps.map((s, i) => {
+    const n = (s.changes || []).length;
+    const count = n ? `<span class="count">${n} change${n > 1 ? "s" : ""}</span>` : "";
+    const icon = s.status === "done" ? CHECK : s.status === "running" ? "" : ["failed", "stopped"].includes(s.status) ? "!" : s.status === "needs_paste" ? "?" : i + 1;
+    const detail = s.detail || (s.status === "running" ? "Working on it..." : s.status === "stopped" ? "Stopped." : "");
+    return `<div class="step ${esc(s.status)} ${openSteps.has(s.key) ? "open" : ""}" data-step="${esc(s.key)}" id="step-${esc(s.key)}">
+      <div class="dot">${icon}</div>
+      <div><div class="title">${esc(s.title)}${count}</div>
+      <div class="detail">${esc(detail)}</div>
+      <div class="changes">${(s.changes || []).map(changeHtml).join("")}</div></div></div>`;
+  }).join("");
+}
+
+function renderJob(job) {
+  const run = job.run;
+  const status = run ? run.status : "done";
+  const analyze = run && run.steps.find((s) => s.key === "analyze");
+  const wants = (analyze && analyze.wants) || [];
+  const branchLink = job.branch && github
+    ? `<a href="https://github.com/${esc(github)}/tree/${esc(job.branch)}" target="_blank" rel="noopener">View on GitHub &#8599;</a>` : "";
+  let banner = "";
+  if (status === "needs_paste") {
+    banner = `<div class="banner warn"><strong>${esc(run.error || "Couldn't read that page.")}</strong> Paste the job description below instead.
+      <textarea id="pasteText" placeholder="Paste the full job description"></textarea>
+      <button class="btn" id="pasteGo">Tailor resume</button> <span class="formerr hidden" id="pasteErr"></span></div>`;
+  } else if (status === "queued") {
+    banner = `<div class="banner warn">Waiting for the job before this one to finish. It starts on its own; you can close this window.</div>`;
+  } else if (status === "failed") {
+    banner = `<div class="banner err"><strong>This run stopped.</strong> ${esc(run.error || "")}
+      ${run.url ? `<div><button class="btn" id="retry">Try again</button></div>` : ""}</div>`;
+  }
+  const left = run
+    ? `<h3>${status === "running" ? "Tailoring now. This usually takes several minutes." : status === "done" ? "How this version was made" : "Progress"}</h3>${stepsHtml(run)}`
+    : `<h3>How this version was made</h3>${job.changes_html ? `<div class="md">${job.changes_html}</div>`
+        : `<div class="legacy">This version was made before the app kept step-by-step notes. The <strong>Edits</strong> tab shows exactly what changed from your main resume.</div>`}`;
+  const ready = job.has_branch && job.has_pdf;
+  $("#view").innerHTML = `
+    ${banner}
+    <div class="jobhead">
+      <h2>${esc(job.company || "New job")}</h2><span class="sub">${esc(job.role || "")}</span>
+      ${job.url ? `<a href="${esc(job.url)}" target="_blank" rel="noopener">Open original posting &#8599;</a>` : ""}
+      ${job.branch ? `<span class="br">${esc(job.branch)}</span>` : ""} ${branchLink}
+    </div>
+    ${revivedBanner(job)}
+    <div class="wants">${wants.map((w) => `<span class="chip ${w.on_resume ? "hit" : ""}" title="${w.on_resume ? "Already on your resume" : "Not on your resume"}">${esc(w.term)}</span>`).join("")}</div>
+    <div class="work">
+      <section class="steps">${left}</section>
+      <section class="preview">
+        <div class="tabs">
+          <button class="tab" data-tab="resume">Tailored resume</button>
+          <button class="tab" data-tab="original">Original</button>
+          <button class="tab" data-tab="posting">Job posting</button>
+          <button class="tab" data-tab="edits">Review edits${job.changes && job.changes.length ? ` <span class="tabcount">${job.changes.filter((c) => c.kind !== "notes").length}</span>` : ""}</button>
+          <span class="spacer"></span>
+          ${ready ? `<a class="btn ghost" href="/api/job/${encodeURIComponent(job.slug)}/tailored.pdf?download=1">Download PDF</a>` : ""}
+        </div>
+        <div id="tabBody"></div>
+      </section>
+    </div>`;
+  document.querySelectorAll(".step .title").forEach((t) => t.onclick = () => {
+    const step = t.closest(".step"); step.classList.toggle("open");
+    step.classList.contains("open") ? openSteps.add(step.dataset.step) : openSteps.delete(step.dataset.step);
+  });
+  document.querySelectorAll(".tab").forEach((t) => t.onclick = () => { currentTab = t.dataset.tab; showTab(job); });
+  if ($("#pasteGo")) $("#pasteGo").onclick = () => submitPaste(job.key);
+  if ($("#reviewRevived")) $("#reviewRevived").onclick = () => { currentTab = "edits"; showTab(job); };
+  if ($("#retry")) $("#retry").onclick = () => startTailor({ url: run.url });
+  showTab(job);
+}
+
+const pageCache = {};
+function pageHtml(job, which) {
+  const src = `/api/job/${encodeURIComponent(job.slug)}/${which}.png?v=${encodeURIComponent(job.sha || job.branch || "")}-${job.run ? job.run.status : ""}`;
+  return `<div class="page" id="page-${which}"><img src="${src}" alt="${which === "tailored" ? "Tailored" : "Original"} resume" onload="pageCount(this, '${which}')"></div>`;
+}
+async function pageCount(img, which) {
+  const r = await fetch(img.src, { method: "HEAD" }).catch(() => null);
+  const pages = r && parseInt(r.headers.get("X-Page-Count") || "1", 10);
+  if (which === "tailored" && pages) {
+    const b = document.createElement("span");
+    b.className = "badge" + (pages > 1 ? " bad" : "");
+    b.textContent = pages > 1 ? `${pages} pages` : "Fits on one page";
+    img.parentElement.appendChild(b);
+  }
+}
+
+function showTab(job) {
+  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === currentTab));
+  const body = $("#tabBody");
+  const running = job.run && ["running", "queued"].includes(job.run.status);
+  if (currentTab === "resume") {
+    body.innerHTML = job.has_branch && job.has_pdf ? pageHtml(job, "tailored")
+      : `<div class="page"><div class="placeholder ${running ? "shimmer" : ""}">${running ? "Your tailored resume will appear here once it's built and saved." : "No tailored resume yet."}</div></div>`;
+  } else if (currentTab === "original") {
+    body.innerHTML = job.has_branch ? pageHtml(job, "original") : `<div class="page"><div class="placeholder">Your main resume appears here once this job's copy is set up.</div></div>`;
+  } else if (currentTab === "posting") {
+    body.innerHTML = job.posting_html ? `<div class="doc md">${job.posting_html}</div>` : `<div class="doc legacy">The job posting wasn't saved with this version.</div>`;
+  } else if ((job.changes && job.changes.length) || (job.undone && job.undone.length)) {
+    renderReview(job, body);
+  } else {
+    body.innerHTML = `<div class="doc legacy">${running ? "Edits appear here once this version is saved." : "No changes to the resume itself."}</div>`;
+  }
+}
+
+const KIND_LABEL = { revived: "Brought back from hidden", hidden: "Hidden", reworded: "Reworded", added: "Added", removed: "Removed", notes: "Hidden items only" };
+function revivedBanner(job) {
+  const n = (job.changes || []).filter((c) => c.kind === "revived").length;
+  if (!n) return "";
+  return `<div class="banner warn revived-banner">${n} item${n > 1 ? "s were" : " was"} brought back from your hidden list.
+    Check ${n > 1 ? "each is" : "it's"} still accurate before you send this. <button class="linkbtn" id="reviewRevived">Review ${n > 1 ? "them" : "it"}</button></div>`;
+}
+function dedent(lines) {
+  const live = lines.filter((l) => l.trim() && !l.trim().startsWith("#"));
+  if (!live.length) return "";
+  const pad = Math.min(...live.map((l) => l.match(/^\s*/)[0].length));
+  return live.map((l) => l.slice(pad)).join("\n");
+}
+function changeCard(c) {
+  return `<div class="ccard ${c.kind}" id="change-${c.id}" data-change="${c.id}">
+    <div class="chead"><span class="kind ${c.kind}">${KIND_LABEL[c.kind] || c.kind}</span>
+      <span class="clabel" title="${esc(c.label)}">${esc(c.label)}</span>
+      <button class="btn ghost small undo" data-id="${c.id}">Undo</button></div>
+    <div class="cdiff"></div></div>`;
+}
+function renderReview(job, body) {
+  const visible = job.changes.filter((c) => c.kind !== "notes");
+  const notes = job.changes.filter((c) => c.kind === "notes");
+  const order = { revived: 0, hidden: 1, added: 2, removed: 3, reworded: 4 };
+  visible.sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9));
+  body.innerHTML = `<div class="review">
+    <div class="rsum">${visible.length} change${visible.length === 1 ? "" : "s"} from your main resume. Undo any you don't want: the resume rebuilds and the change is saved.</div>
+    <div class="formerr hidden" id="reviewErr"></div>
+    ${visible.map(changeCard).join("")}
+    ${notes.length ? `<details class="notes"><summary>${notes.length} edit${notes.length > 1 ? "s" : ""} to hidden items only (these don't change the PDF)</summary>${notes.map(changeCard).join("")}</details>` : ""}
+    ${job.undone && job.undone.length ? `<div class="undone"><h4>Undone</h4>${job.undone.map((u) => `
+      <div class="urow" id="undone-${u.commit.slice(0, 12)}"><span>${esc(u.label)}</span><button class="btn ghost small restore" data-commit="${u.commit}">Restore</button></div>`).join("")}</div>` : ""}
+    ${job.diff ? `<details class="whole"><summary>Show the whole file</summary><div class="doc diffwrap" id="diffView"></div></details>` : ""}
+  </div>`;
+  job.changes.forEach((c) => {
+    const el = body.querySelector(`#change-${c.id} .cdiff`);
+    if (el) renderMiniDiff(el, c);
+  });
+  const whole = body.querySelector("details.whole");
+  if (whole) whole.addEventListener("toggle", () => { if (whole.open && !whole.dataset.done) { whole.dataset.done = 1; renderDiff(job, $("#diffView")); } });
+  body.querySelectorAll(".undo").forEach((b) => b.onclick = () => reviewAction(job, b, `/api/job/${encodeURIComponent(job.slug)}/changes/${b.dataset.id}/undo`, "Undoing..."));
+  body.querySelectorAll(".restore").forEach((b) => b.onclick = () => reviewAction(job, b, `/api/job/${encodeURIComponent(job.slug)}/undone/${b.dataset.commit}/restore`, "Restoring..."));
+}
+async function reviewAction(job, button, url, busyText) {
+  document.querySelectorAll(".undo, .restore").forEach((b) => b.disabled = true);
+  const original = button.textContent;
+  button.textContent = busyText;
+  const err = $("#reviewErr"); err.classList.add("hidden");
+  try {
+    await api(url, { method: "POST" });
+    await select(job.key, true);
+  } catch (e) {
+    err.textContent = e.message; err.classList.remove("hidden");
+    document.querySelectorAll(".undo, .restore").forEach((b) => b.disabled = false);
+    button.textContent = original;
+  }
+}
+async function renderMiniDiff(el, c) {
+  const nl = (t) => (t ? t + "\n" : "");
+  const before = nl(c.kind === "notes" ? c.removed.join("\n") : dedent(c.removed));
+  const after = nl(c.kind === "notes" ? c.added.join("\n") : dedent(c.added));
+  try {
+    diffsLib = diffsLib || await import(DIFFS_MODULE);
+    if (!el.isConnected) return;
+    new diffsLib.FileDiff({ lineDiffType: "word", diffStyle: "unified", overflow: "wrap", themeType: "light",
+      disableFileHeader: true, disableLineNumbers: true, hunkSeparators: "simple" })
+      .render({ oldFile: { name: "change.yaml", contents: before }, newFile: { name: "change.yaml", contents: after }, containerWrapper: el });
+  } catch (e) {
+    el.innerHTML = `<div class="diff">${before.split("\n").filter(Boolean).map((l) => `<span class="d">- ${esc(l)}</span>`).join("")}${after.split("\n").filter(Boolean).map((l) => `<span class="a">+ ${esc(l)}</span>`).join("")}</div>`;
+  }
+}
+
+// Word-level diff of the resume source, rendered by diffs.com's viewer.
+const DIFFS_MODULE = "https://esm.sh/@pierre/diffs@1.5.2";
+let diffsLib = null;
+async function renderDiff(job, el) {
+  try {
+    diffsLib = diffsLib || await import(DIFFS_MODULE);
+    if (!el.isConnected) return;
+    el.innerHTML = "";
+    const viewer = new diffsLib.FileDiff({
+      lineDiffType: "word",
+      diffStyle: "unified",
+      overflow: "wrap",
+      themeType: "light",
+      disableFileHeader: true,
+      expandUnchanged: false,
+    });
+    viewer.render({
+      oldFile: { name: "base.yaml", contents: job.resume_before },
+      newFile: { name: "base.yaml", contents: job.resume_after },
+      containerWrapper: el,
+    });
+  } catch (e) {
+    // Offline or the viewer failed to load: fall back to the plain line diff.
+    el.innerHTML = `<div class="diff">${diffHtml(job.diff)}</div>`;
+  }
+}
+function diffHtml(diff) {
+  return diff.split("\n").filter((l) => !/^(diff --git|index |--- |\+\+\+ )/.test(l)).map((l) => {
+    const cls = l.startsWith("@@") ? "h" : l.startsWith("+") ? "a" : l.startsWith("-") ? "d" : "";
+    return cls ? `<span class="${cls}">${esc(l.startsWith("@@") ? "..." : l)}</span>` : esc(l) + "\n";
+  }).join("");
+}
+
+// ---- actions ----
+function showFormErr(msg) { const e = $("#formErr"); e.textContent = msg || ""; e.classList.toggle("hidden", !msg); }
+async function startTailor(body) {
+  showFormErr("");
+  $("#go").disabled = true;
+  try {
+    const { key } = await api("/api/tailor", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    $("#link").value = ""; $("#pasteNewText").value = ""; $("#pasteNew").classList.add("hidden");
+    await loadJobs();
+    select(key);
+  } catch (e) { showFormErr(e.message); }
+  finally { $("#go").disabled = false; }
+}
+async function submitPaste(key) {
+  const text = $("#pasteText").value;
+  try {
+    await api(`/api/job/${encodeURIComponent(key)}/paste`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+    select(key, true);
+  } catch (e) { const el = $("#pasteErr"); el.textContent = e.message; el.classList.remove("hidden"); }
+}
+$("#linkForm").onsubmit = (e) => { e.preventDefault(); const url = $("#link").value.trim(); if (!url) { showFormErr("Paste a job link first."); return; } startTailor({ url }); };
+$("#pasteInstead").onclick = () => { $("#pasteNew").classList.toggle("hidden"); $("#pasteNewText").focus(); };
+$("#pasteNewGo").onclick = () => { const text = $("#pasteNewText").value.trim(); if (text.length < 200) { showFormErr("That looks too short to be a full job description."); return; } startTailor({ url: $("#link").value.trim() || null, text }); };
+$("#newBtn").onclick = () => { select(null); $("#link").focus(); };
+$("#refreshBtn").onclick = async () => { $("#refreshBtn").textContent = "Checking..."; try { await api("/api/refresh", { method: "POST" }); await loadJobs(); } finally { $("#refreshBtn").textContent = "Refresh"; } };
+
+(async () => {
+  await loadJobs();
+  const key = new URLSearchParams(location.search).get("job");
+  select(key || (jobs[0] && jobs[0].key) || null);
+  setInterval(loadJobs, 10000);
+})();
+</script>
+</body>
+</html>
